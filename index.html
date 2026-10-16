@@ -86,6 +86,14 @@ nav button[aria-selected="true"]{color:var(--accent);border-top-color:var(--acce
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:700;z-index:9;transition:opacity .2s}
 textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;background:var(--bg);color:var(--fg);border:1.5px solid var(--line);border-radius:10px;padding:8px}
 .konfirm{background:var(--soft);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+#printArea{display:none}
+.konfirm .btn2{background:var(--card);border:1px solid var(--line)}
+@media print{
+  @page{size:58mm auto;margin:0}
+  body{background:#fff!important;color:#000!important}
+  .wrap,nav,.toast,body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;width:58mm;padding:2mm 3mm;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;line-height:1.35;color:#000;white-space:pre}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.item:active{transform:none}}
 </style>
 </head>
@@ -111,12 +119,25 @@ textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;bac
         <datalist id="daftarNama"></datalist>
         <div class="btns"><button class="btn" id="simpanUtang">Simpan ke utang</button><button class="btn2" id="batalUtang">Batal</button></div>
       </div>
+      <div id="habisBayar" class="konfirm" hidden>
+        <b id="habisBayarTxt">Transaksi tersimpan.</b>
+        <div class="btns"><button class="btn" id="cetakRawbt">Cetak struk</button><button class="btn2" id="cetakPdf">Print / PDF</button></div>
+        <button class="btn2" id="tutupHabis">Transaksi baru</button>
+      </div>
       <button class="btn-d" id="kosongkan">Kosongkan nota</button>
     </div>
   </section>
 
   <!-- STOK -->
   <section id="tab-stok" class="tab" hidden style="flex-direction:column;gap:14px">
+    <div class="card">
+      <h2>Info struk</h2>
+      <input id="tNama" placeholder="Nama warung">
+      <input id="tAlamat" placeholder="Alamat / No. WA (boleh kosong)">
+      <input id="tFooter" placeholder="Pesan bawah struk">
+      <button class="btn2" id="simpanToko">Simpan info struk</button>
+      <p class="muted" style="margin:0">Printer thermal 58mm: install app <b>RawBT</b> di HP, sambungkan printer Bluetooth di RawBT, lalu tekan Cetak struk.</p>
+    </div>
     <div class="card">
       <h2>Tambah barang</h2>
       <div class="form2"><input id="bNama" placeholder="Nama barang"><input id="bHarga" inputmode="numeric" placeholder="Harga"><input id="bStok" inputmode="numeric" placeholder="Stok"></div>
@@ -163,7 +184,7 @@ const KEY="kasirWarung.v1";
 const CONTOH=[["Indomie Goreng",3500,40],["Aqua 600ml",4000,24],["Kopi sachet",2000,30],["Telur 1 butir",2500,30],["Teh botol",4500,12],["Gula 1/4 kg",4500,8],["Beras 1 kg",14000,10],["Minyak goreng 1L",18000,3],["Roti",3000,0],["Kerupuk",1000,25]];
 let S;
 function baru(){return{barang:CONTOH.map((b,i)=>({id:"b"+i,nama:b[0],harga:b[1],stok:b[2]})),contoh:true,trx:[],utang:{}}}
-function load(){try{const r=localStorage.getItem(KEY);S=r?JSON.parse(r):baru()}catch(e){S=baru()}}
+function load(){try{const r=localStorage.getItem(KEY);S=r?JSON.parse(r):baru()}catch(e){S=baru()}S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:"Terima kasih, datang lagi ya!"}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 let cart={},konfirmHapus=null;
@@ -215,14 +236,14 @@ function kurangiStok(){for(const[id,q]of Object.entries(cart)){const b=S.barang.
 function resetNota(){cart={};$("bayar").value="";$("utangForm").hidden=true;$("namaUtang").value=""}
 $("selesai").onclick=()=>{const t=totalCart();if(!t){toast("Nota masih kosong");return}
   const b=angka($("bayar").value);if(b&&b<t){toast("Uangnya kurang "+rp(t-b));return}
-  S.trx.unshift({w:Date.now(),items:itemsCart(),total:t,jenis:"tunai"});kurangiStok();save();resetNota();renderKasir();toast("Tersimpan, total "+rp(t))};
+  const tx={w:Date.now(),items:itemsCart(),total:t,jenis:"tunai",bayar:b||t,kembali:(b||t)-t};S.trx.unshift(tx);kurangiStok();save();resetNota();renderKasir();tampilCetak(tx)};
 $("keUtang").onclick=()=>{if(!totalCart()){toast("Nota masih kosong");return}
   $("daftarNama").innerHTML=Object.keys(S.utang).map(n=>`<option value="${esc(n)}">`).join("");$("utangForm").hidden=false;$("namaUtang").focus()};
 $("batalUtang").onclick=()=>{$("utangForm").hidden=true};
 $("simpanUtang").onclick=()=>{const n=$("namaUtang").value.trim();if(!n){toast("Isi nama pelanggan dulu");return}
   const t=totalCart(),items=itemsCart();
   (S.utang[n]=S.utang[n]||[]).push({w:Date.now(),jumlah:t,ket:items.map(i=>i.nama+" ×"+i.qty).join(", ")});
-  S.trx.unshift({w:Date.now(),items,total:t,jenis:"utang",nama:n});kurangiStok();save();resetNota();renderKasir();toast("Dicatat ke utang "+n)};
+  const tx={w:Date.now(),items,total:t,jenis:"utang",nama:n};S.trx.unshift(tx);kurangiStok();save();resetNota();renderKasir();tampilCetak(tx,"Dicatat ke utang "+n+".")};
 $("kosongkan").onclick=()=>{resetNota();renderKasir()};
 $("hapusContoh").onclick=()=>{S.barang=[];S.contoh=false;save();render();toast("Contoh dihapus. Tambah barangmu di tab Stok")};
 
@@ -265,11 +286,12 @@ function renderRekap(){const t=S.trx.filter(x=>new Date(x.w).toDateString()===ha
   const laku={};t.forEach(x=>x.items.forEach(i=>laku[i.nama]=(laku[i.nama]||0)+i.qty));
   const top=Object.entries(laku).sort((a,b)=>b[1]-a[1]).slice(0,5);
   $("rLaku").innerHTML=top.length?top.map(([n,q])=>`<div class="row"><span class="nm">${esc(n)}</span><span class="num">${q} terjual</span></div>`).join(""):`<p class="empty">Belum ada penjualan hari ini.</p>`;
-  $("rRiwayat").innerHTML=S.trx.length?S.trx.slice(0,10).map(x=>`<div class="row"><div class="nm"><span class="num muted">${new Date(x.w).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span> ${x.jenis==="utang"?`<span class="badge">Utang · ${esc(x.nama)}</span>`:""}<div class="muted">${esc(x.items.map(i=>i.nama+" ×"+i.qty).join(", "))}</div></div><b class="num">${rp(x.total)}</b></div>`).join(""):`<p class="empty">Belum ada transaksi.</p>`;
+  $("rRiwayat").innerHTML=S.trx.length?S.trx.slice(0,10).map(x=>`<div class="row"><div class="nm"><span class="num muted">${new Date(x.w).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span> ${x.jenis==="utang"?`<span class="badge">Utang · ${esc(x.nama)}</span>`:""}<div class="muted">${esc(x.items.map(i=>i.nama+" ×"+i.qty).join(", "))}</div></div><b class="num">${rp(x.total)}</b><button class="btn2" style="padding:6px 9px;font-size:.8rem" data-struk="${x.w}">Struk</button></div>`).join(""):`<p class="empty">Belum ada transaksi.</p>`;
+  $("rRiwayat").querySelectorAll("[data-struk]").forEach(b=>b.onclick=()=>{const x=S.trx.find(t=>t.w==b.dataset.struk);if(x)cetakRawbt(x)});
 }
 $("salinBackup").onclick=()=>{const txt=JSON.stringify(S);$("backupTxt").value=txt;
   try{navigator.clipboard.writeText(txt).then(()=>toast("Kode backup disalin"),()=>{$("backupTxt").select();toast("Kode sudah dipilih, salin manual")})}catch(e){$("backupTxt").select();toast("Kode sudah dipilih, salin manual")}};
-$("pulihkan").onclick=()=>{try{const d=JSON.parse($("backupTxt").value);if(!d.barang)throw 0;S=d;save();cart={};render();toast("Data dipulihkan")}catch(e){toast("Kode backup tidak valid")}};
+$("pulihkan").onclick=()=>{try{const d=JSON.parse($("backupTxt").value);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};save();cart={};isiToko();render();toast("Data dipulihkan")}catch(e){toast("Kode backup tidak valid")}};
 
 
 $("downloadBackup").onclick=()=>{const d=new Date(),tgl=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -277,8 +299,39 @@ $("downloadBackup").onclick=()=>{const d=new Date(),tgl=d.getFullYear()+"-"+Stri
   a.href=URL.createObjectURL(blob);a.download="backup-warung-"+tgl+".json";document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast("Backup tersimpan di folder Download")};
 $("fileBackup").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.barang)throw 0;S=d;save();cart={};render();toast("Data dipulihkan dari file")}catch(err){toast("File backup tidak valid")}e.target.value=""};r.readAsText(f)};
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};save();cart={};isiToko();render();toast("Data dipulihkan dari file")}catch(err){toast("File backup tidak valid")}e.target.value=""};r.readAsText(f)};
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+// ===== STRUK =====
+let trxCetak=null;
+const asc=s=>String(s||"").normalize("NFD").replace(/[^\x20-\x7e]/g,"");
+function strukTeks(x){const W=32,T=S.toko,g="-".repeat(W),
+  lr=(l,r)=>{l=asc(l);r=asc(r);const sp=W-l.length-r.length;return sp>=1?l+" ".repeat(sp)+r:l.slice(0,Math.max(0,W-r.length-1))+" "+r},
+  d=new Date(x.w),tgl=d.toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+  const body=[g,tgl,g];
+  x.items.forEach(i=>{body.push(asc(i.nama).slice(0,W));body.push(lr("  "+i.qty+" x "+rp(i.harga),rp(i.harga*i.qty)))});
+  body.push(g,lr("TOTAL",rp(x.total)));
+  if(x.jenis==="utang")body.push(lr("UTANG",asc(x.nama)));
+  else{body.push(lr("Bayar",rp(x.bayar??x.total)),lr("Kembali",rp(x.kembali??0)))}
+  body.push(g);
+  return{nama:asc(T.nama),alamat:asc(T.alamat),footer:asc(T.footer),body:body.join("\n")}}
+function cetakRawbt(x){const s=strukTeks(x),E="\x1b",GS="\x1d";
+  let d=E+"@"+E+"a\x01"+E+"E\x01"+GS+"!\x11"+s.nama+"\n"+GS+"!\x00"+E+"E\x00";
+  if(s.alamat)d+=s.alamat+"\n";
+  d+=E+"a\x00"+s.body+"\n"+E+"a\x01"+s.footer+"\n\n\n\n";
+  const b64=btoa(d);
+  try{location.href="intent:base64,"+b64+"#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"}catch(e){toast("Gagal membuka RawBT")}}
+function cetakPdf(x){const s=strukTeks(x),c=t=>{const p=Math.max(0,Math.floor((32-t.length)/2));return " ".repeat(p)+t};
+  let el=$("printArea");if(!el){el=document.createElement("div");el.id="printArea";document.body.appendChild(el)}
+  el.textContent=[c(s.nama),s.alamat?c(s.alamat):null,s.body,c(s.footer)].filter(v=>v!==null).join("\n");
+  setTimeout(()=>window.print(),50)}
+function tampilCetak(tx,pesan){trxCetak=tx;$("habisBayarTxt").textContent=(pesan||"Tersimpan.")+" Total "+rp(tx.total)+(tx.jenis==="tunai"&&tx.kembali?" · kembalian "+rp(tx.kembali):"");$("habisBayar").hidden=false}
+$("cetakRawbt").onclick=()=>{if(trxCetak)cetakRawbt(trxCetak)};
+$("cetakPdf").onclick=()=>{if(trxCetak)cetakPdf(trxCetak)};
+$("tutupHabis").onclick=()=>{$("habisBayar").hidden=true;trxCetak=null};
+function isiToko(){$("tNama").value=S.toko.nama;$("tAlamat").value=S.toko.alamat;$("tFooter").value=S.toko.footer}
+$("simpanToko").onclick=()=>{S.toko={nama:$("tNama").value.trim()||"Warung Saya",alamat:$("tAlamat").value.trim(),footer:$("tFooter").value.trim()};save();toast("Info struk disimpan")};
+isiToko();
+
 function render(){renderKasir();renderStok();renderUtang();renderRekap()}
 render();
 </script>
