@@ -1,6 +1,6 @@
 {
-  "name": "Kasir Warung",
-  "short_name": "Kasir Warung",
+  "name": "Toko Adrian",
+  "short_name": "Toko Adrian",
   "description": "Kasir warung pribadi: total, kembalian, stok, utang, dan rekap harian.",
   "start_url": "./",
   "scope": "./",

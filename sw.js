@@ -1,5 +1,5 @@
 // Ganti angka versi ini setiap kali kamu update index.html, biar HP ambil versi baru
-const CACHE = "kasir-warung-v3";
+const CACHE = "kasir-warung-v5";
 const FILES = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
