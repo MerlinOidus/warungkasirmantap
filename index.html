@@ -86,6 +86,12 @@ nav button[aria-selected="true"]{color:var(--accent);border-top-color:var(--acce
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:700;z-index:9;transition:opacity .2s}
 textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;background:var(--bg);color:var(--fg);border:1.5px solid var(--line);border-radius:10px;padding:8px}
 .konfirm{background:var(--soft);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.chip.on{background:var(--accent);color:var(--accent-fg)}
+.grupBar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.grupBar::-webkit-scrollbar{display:none}
+.grupBar .chip{flex:none}
+.glink{background:transparent;color:var(--accent);font-size:.78rem;font-weight:700;padding:2px 0;text-align:left}
+.chip .x{margin-left:6px;opacity:.6}
 #printArea{display:none}
 .konfirm .btn2{background:var(--card);border:1px solid var(--line)}
 @media print{
@@ -105,6 +111,7 @@ textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;bac
   <!-- KASIR -->
   <section id="tab-kasir" class="tab" style="display:flex;flex-direction:column;gap:14px">
     <input id="cari" placeholder="Cari barang…" autocomplete="off">
+    <div class="chips grupBar" id="grupFilter" role="group" aria-label="Filter grup"></div>
     <div class="grid" id="gridBarang"></div>
     <div class="card nota">
       <h2>Nota</h2>
@@ -131,6 +138,20 @@ textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;bac
   <!-- STOK -->
   <section id="tab-stok" class="tab" hidden style="flex-direction:column;gap:14px">
     <div class="card">
+      <h2>Tambah barang</h2>
+      <div class="form2"><input id="bNama" placeholder="Nama barang"><input id="bHarga" inputmode="numeric" placeholder="Harga"><input id="bStok" inputmode="numeric" placeholder="Stok"></div>
+      <span class="muted">Centang grupnya (boleh lebih dari satu):</span>
+      <div class="chips" id="bGrup"></div>
+      <button class="btn" id="tambahBarang">Tambah</button>
+    </div>
+    <div class="card"><h2>Daftar barang</h2><p class="muted" style="margin:0">Ketuk angka untuk ubah harga atau stok. Ketuk tulisan hijau untuk ubah grup.</p><div class="list" id="listStok"></div></div>
+    <div class="card">
+      <h2>Grup barang</h2>
+      <div class="chips" id="listGrup"></div>
+      <div class="row"><input id="grupBaru" placeholder="Nama grup baru, misal: Es Krim"><button class="btn" id="tambahGrup" style="flex:none">Tambah</button></div>
+      <p class="muted" style="margin:0">Ketuk ✕ untuk hapus grup. Barangnya tidak ikut terhapus.</p>
+    </div>
+    <div class="card">
       <h2>Info struk</h2>
       <input id="tNama" placeholder="Nama warung">
       <input id="tAlamat" placeholder="Alamat / No. WA (boleh kosong)">
@@ -138,12 +159,6 @@ textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;bac
       <button class="btn2" id="simpanToko">Simpan info struk</button>
       <p class="muted" style="margin:0">Printer thermal 58mm: install app <b>RawBT</b> di HP, sambungkan printer Bluetooth di RawBT, lalu tekan Cetak struk.</p>
     </div>
-    <div class="card">
-      <h2>Tambah barang</h2>
-      <div class="form2"><input id="bNama" placeholder="Nama barang"><input id="bHarga" inputmode="numeric" placeholder="Harga"><input id="bStok" inputmode="numeric" placeholder="Stok"></div>
-      <button class="btn" id="tambahBarang">Tambah</button>
-    </div>
-    <div class="card"><h2>Daftar barang</h2><p class="muted" style="margin:0">Ketuk angka untuk ubah harga atau stok.</p><div class="list" id="listStok"></div></div>
   </section>
 
   <!-- UTANG -->
@@ -184,7 +199,11 @@ const KEY="kasirWarung.v1";
 const CONTOH=[["Indomie Goreng",3500,40],["Aqua 600ml",4000,24],["Kopi sachet",2000,30],["Telur 1 butir",2500,30],["Teh botol",4500,12],["Gula 1/4 kg",4500,8],["Beras 1 kg",14000,10],["Minyak goreng 1L",18000,3],["Roti",3000,0],["Kerupuk",1000,25]];
 let S;
 function baru(){return{barang:CONTOH.map((b,i)=>({id:"b"+i,nama:b[0],harga:b[1],stok:b[2]})),contoh:true,trx:[],utang:{}}}
-function load(){try{const r=localStorage.getItem(KEY);S=r?JSON.parse(r):baru()}catch(e){S=baru()}S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:"Terima kasih, datang lagi ya!"}}
+function load(){try{const r=localStorage.getItem(KEY);S=r?JSON.parse(r):baru()}catch(e){S=baru()}S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:"Terima kasih, datang lagi ya!"};siapGrup()}
+const GRUP_AWAL=["Minuman","Snack","Kopi Sachet","Mie","Sembako","Bumbu Dapur","Sabun & Mandi","Rokok","Gas & Galon"];
+const GRUP_CONTOH={"Indomie Goreng":["Mie"],"Aqua 600ml":["Minuman"],"Kopi sachet":["Kopi Sachet","Minuman"],"Telur 1 butir":["Sembako"],"Teh botol":["Minuman"],"Gula 1/4 kg":["Sembako"],"Beras 1 kg":["Sembako"],"Minyak goreng 1L":["Sembako"],"Roti":["Snack"],"Kerupuk":["Snack"]};
+function siapGrup(){if(!S.grup){S.grup=GRUP_AWAL.slice();S.barang.forEach(b=>{if(!b.grup)b.grup=GRUP_CONTOH[b.nama]?GRUP_CONTOH[b.nama].slice():[]})}
+  S.barang.forEach(b=>{if(!Array.isArray(b.grup))b.grup=[]})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 let cart={},konfirmHapus=null;
@@ -209,7 +228,13 @@ function renderKasir(){
   $("contohBar").hidden=!S.contoh;
   const q=$("cari").value.toLowerCase();
   const g=$("gridBarang");
-  const list=S.barang.filter(b=>b.nama.toLowerCase().includes(q));
+  if(filterGrup!=="Semua"&&filterGrup!=="Lainnya"&&!S.grup.includes(filterGrup))filterGrup="Semua";
+  const adaLain=S.barang.some(b=>!b.grup.length);
+  const opsiG=["Semua",...S.grup,...(adaLain?["Lainnya"]:[])];
+  $("grupFilter").innerHTML=opsiG.map(g=>`<button class="chip ${g===filterGrup?"on":""}" data-fg="${esc(g)}" aria-pressed="${g===filterGrup}">${esc(g)}</button>`).join("");
+  $("grupFilter").querySelectorAll("[data-fg]").forEach(c=>c.onclick=()=>{filterGrup=c.dataset.fg;renderKasir()});
+  const cocokG=b=>filterGrup==="Semua"||(filterGrup==="Lainnya"?!b.grup.length:b.grup.includes(filterGrup));
+  const list=S.barang.filter(b=>b.nama.toLowerCase().includes(q)&&cocokG(b));
   g.innerHTML=list.length?list.map(b=>{const sisa=b.stok-(cart[b.id]||0);
     return `<button class="item ${sisa<=0?"habis":sisa<=5?"dikit":""}" data-id="${b.id}"><b>${esc(b.nama)}</b><span class="h num">${rp(b.harga)}</span><span class="s">${sisa<=0?"Stok habis":"Sisa "+sisa}</span></button>`}).join(""):`<p class="empty" style="grid-column:1/-1">Barang tidak ketemu. Tambah di tab Stok.</p>`;
   g.querySelectorAll(".item").forEach(el=>el.onclick=()=>{const b=S.barang.find(x=>x.id===el.dataset.id);
@@ -250,17 +275,34 @@ $("hapusContoh").onclick=()=>{S.barang=[];S.contoh=false;save();render();toast("
 // STOK
 function renderStok(){const l=$("listStok");
   l.innerHTML=S.barang.length?S.barang.map(b=>konfirmHapus===b.id?`<div class="row"><span class="nm">Hapus <b>${esc(b.nama)}</b>?</span><button class="btn-d" data-yes="${b.id}">Ya, hapus</button><button class="btn2" data-no style="padding:8px 10px">Batal</button></div>`:
-  `<div class="row"><span class="nm"><b>${esc(b.nama)}</b> ${b.stok<=0?'<span class="badge merah">Habis</span>':b.stok<=5?'<span class="badge merah">Hampir habis</span>':""}</span><input class="num" style="width:96px" inputmode="numeric" data-h="${b.id}" value="${b.harga}" aria-label="Harga ${esc(b.nama)}"><input class="num" style="width:62px" inputmode="numeric" data-s="${b.id}" value="${b.stok}" aria-label="Stok ${esc(b.nama)}"><button class="btn-d" data-del="${b.id}" aria-label="Hapus">✕</button></div>`).join(""):`<p class="empty">Belum ada barang.</p>`;
+  `<div class="row"><span class="nm"><b>${esc(b.nama)}</b> ${b.stok<=0?'<span class="badge merah">Habis</span>':b.stok<=5?'<span class="badge merah">Hampir habis</span>':""}<br><button class="glink" data-eg="${b.id}">${b.grup.length?esc(b.grup.join(", ")):"+ Pilih grup"}</button></span><input class="num" style="width:96px" inputmode="numeric" data-h="${b.id}" value="${b.harga}" aria-label="Harga ${esc(b.nama)}"><input class="num" style="width:62px" inputmode="numeric" data-s="${b.id}" value="${b.stok}" aria-label="Stok ${esc(b.nama)}"><button class="btn-d" data-del="${b.id}" aria-label="Hapus">✕</button></div>${editGrup===b.id?`<div class="row" style="flex-wrap:wrap;border-bottom:1px solid var(--line)"><div class="chips">${S.grup.map(g=>`<button class="chip ${b.grup.includes(g)?"on":""}" data-tg="${esc(g)}" data-tb="${b.id}">${b.grup.includes(g)?"✓ ":""}${esc(g)}</button>`).join("")}</div><button class="btn2" data-done style="padding:6px 12px">Selesai</button></div>`:""}`).join(""):`<p class="empty">Belum ada barang.</p>`;
   l.querySelectorAll("[data-h]").forEach(i=>i.onchange=()=>{S.barang.find(x=>x.id===i.dataset.h).harga=angka(i.value);S.contoh=false;save();toast("Harga diubah")});
   l.querySelectorAll("[data-s]").forEach(i=>i.onchange=()=>{S.barang.find(x=>x.id===i.dataset.s).stok=angka(i.value);S.contoh=false;save();renderStok();toast("Stok diubah")});
   l.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{konfirmHapus=b.dataset.del;renderStok()});
   l.querySelectorAll("[data-yes]").forEach(b=>b.onclick=()=>{S.barang=S.barang.filter(x=>x.id!==b.dataset.yes);delete cart[b.dataset.yes];konfirmHapus=null;save();renderStok()});
   l.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{konfirmHapus=null;renderStok()});
+  l.querySelectorAll("[data-eg]").forEach(b=>b.onclick=()=>{editGrup=editGrup===b.dataset.eg?null:b.dataset.eg;renderStok()});
+  l.querySelectorAll("[data-tg]").forEach(c=>c.onclick=()=>{const b=S.barang.find(x=>x.id===c.dataset.tb),g=c.dataset.tg;
+    b.grup=b.grup.includes(g)?b.grup.filter(x=>x!==g):[...b.grup,g];save();renderStok()});
+  l.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>{editGrup=null;renderStok()});
+  // pilih grup untuk barang baru
+  $("bGrup").innerHTML=S.grup.length?S.grup.map(g=>`<button class="chip ${pilihBaru.has(g)?"on":""}" data-pb="${esc(g)}" aria-pressed="${pilihBaru.has(g)}">${pilihBaru.has(g)?"✓ ":""}${esc(g)}</button>`).join(""):`<span class="muted">Belum ada grup. Tambah di bawah.</span>`;
+  $("bGrup").querySelectorAll("[data-pb]").forEach(c=>c.onclick=()=>{const g=c.dataset.pb;pilihBaru.has(g)?pilihBaru.delete(g):pilihBaru.add(g);renderStok()});
+  // kelola grup
+  $("listGrup").innerHTML=S.grup.map(g=>{const n=S.barang.filter(b=>b.grup.includes(g)).length;
+    return `<button class="chip" data-hg="${esc(g)}" aria-label="Hapus grup ${esc(g)}">${esc(g)} <span class="num muted">${n}</span><span class="x">✕</span></button>`}).join("")||`<span class="muted">Belum ada grup.</span>`;
+  $("listGrup").querySelectorAll("[data-hg]").forEach(c=>c.onclick=()=>{const g=c.dataset.hg;
+    S.grup=S.grup.filter(x=>x!==g);S.barang.forEach(b=>b.grup=b.grup.filter(x=>x!==g));pilihBaru.delete(g);save();renderStok();toast("Grup "+g+" dihapus")});
 }
+let filterGrup="Semua",editGrup=null;const pilihBaru=new Set();
+$("tambahGrup").onclick=()=>{const g=$("grupBaru").value.trim();if(!g){toast("Isi nama grup dulu");return}
+  if(S.grup.some(x=>x.toLowerCase()===g.toLowerCase())){toast("Grup "+g+" sudah ada");return}
+  S.grup.push(g);save();$("grupBaru").value="";renderStok();toast("Grup "+g+" ditambahkan")};
+$("grupBaru").onkeydown=e=>{if(e.key==="Enter")$("tambahGrup").click()};
 $("tambahBarang").onclick=()=>{const n=$("bNama").value.trim(),h=angka($("bHarga").value),s=angka($("bStok").value);
   if(!n||!h){toast("Isi nama dan harga");return}
-  S.barang.unshift({id:"b"+Date.now(),nama:n,harga:h,stok:s});S.contoh=false;save();
-  $("bNama").value=$("bHarga").value=$("bStok").value="";renderStok();toast(n+" ditambahkan")};
+  S.barang.unshift({id:"b"+Date.now(),nama:n,harga:h,stok:s,grup:[...pilihBaru]});S.contoh=false;save();
+  $("bNama").value=$("bHarga").value=$("bStok").value="";pilihBaru.clear();renderStok();toast(n+" ditambahkan")};
 
 // UTANG
 let bayarUtang=null;
@@ -291,7 +333,7 @@ function renderRekap(){const t=S.trx.filter(x=>new Date(x.w).toDateString()===ha
 }
 $("salinBackup").onclick=()=>{const txt=JSON.stringify(S);$("backupTxt").value=txt;
   try{navigator.clipboard.writeText(txt).then(()=>toast("Kode backup disalin"),()=>{$("backupTxt").select();toast("Kode sudah dipilih, salin manual")})}catch(e){$("backupTxt").select();toast("Kode sudah dipilih, salin manual")}};
-$("pulihkan").onclick=()=>{try{const d=JSON.parse($("backupTxt").value);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};save();cart={};isiToko();render();toast("Data dipulihkan")}catch(e){toast("Kode backup tidak valid")}};
+$("pulihkan").onclick=()=>{try{const d=JSON.parse($("backupTxt").value);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};siapGrup();save();cart={};isiToko();render();toast("Data dipulihkan")}catch(e){toast("Kode backup tidak valid")}};
 
 
 $("downloadBackup").onclick=()=>{const d=new Date(),tgl=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -299,7 +341,7 @@ $("downloadBackup").onclick=()=>{const d=new Date(),tgl=d.getFullYear()+"-"+Stri
   a.href=URL.createObjectURL(blob);a.download="backup-warung-"+tgl+".json";document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast("Backup tersimpan di folder Download")};
 $("fileBackup").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};save();cart={};isiToko();render();toast("Data dipulihkan dari file")}catch(err){toast("File backup tidak valid")}e.target.value=""};r.readAsText(f)};
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.barang)throw 0;S=d;S.toko=S.toko||{nama:"Warung Saya",alamat:"",footer:""};siapGrup();save();cart={};isiToko();render();toast("Data dipulihkan dari file")}catch(err){toast("File backup tidak valid")}e.target.value=""};r.readAsText(f)};
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
 // ===== STRUK =====
 let trxCetak=null;
