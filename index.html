@@ -10,7 +10,7 @@
 <title>Toko Adrian</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:15px}[hidden]{display:none!important}img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}
 
 /* Layout: satu kolom ala HP, tab bawah, nota di bawah daftar barang */
 :root{
@@ -30,7 +30,10 @@
   --accent:#3fae74; --accent-fg:#06150c; --kuning:#f5c53a; --kuning-fg:#2a2100;
   --danger:#ef6b5c; --soft:#20352a; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+html{font-size:16px}
+html[data-ukuran="besar"]{font-size:19px}
+html[data-ukuran="jumbo"]{font-size:22px}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:.94rem;line-height:1.45}
 .wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 110px;display:flex;flex-direction:column;gap:14px}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 h1{font-family:var(--display);font-weight:800;font-size:1.9rem;margin:0;line-height:1;color:var(--accent)}
@@ -42,7 +45,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--kuning);outline
 input{font:inherit;color:var(--fg);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .cari{position:relative}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(8.8rem,1fr));gap:8px}
 .item{background:var(--card);border:1.5px solid var(--line);padding:10px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--fg);min-height:74px}
 .item:active{transform:scale(.97)}
 .item b{font-weight:700;font-size:.92rem;line-height:1.2}
@@ -54,7 +57,7 @@ input{font:inherit;color:var(--fg);background:var(--card);border:1.5px solid var
 .row{display:flex;align-items:center;gap:8px}
 .row .nm{flex:1;min-width:0}
 .qty{display:flex;align-items:center;gap:6px}
-.qb{width:32px;height:32px;background:var(--soft);color:var(--fg);font-weight:800;font-size:1.1rem}
+.qb{width:2.1rem;height:2.1rem;background:var(--soft);color:var(--fg);font-weight:800;font-size:1.1rem}
 .total{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--display);font-weight:800;font-size:1.6rem}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{background:var(--soft);color:var(--fg);padding:7px 11px;font-weight:700;font-size:.85rem}
@@ -109,12 +112,28 @@ textarea{font-family:var(--mono);font-size:.75rem;width:100%;min-height:90px;bac
 .chart .maks{position:absolute;top:0;left:0;font-size:.7rem;color:var(--muted)}
 .xlab{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
 .readout{font-size:.85rem;font-weight:700;min-height:1.3em}
-.cek{width:30px;height:30px;flex:none;border-radius:8px;border:2px solid var(--line);background:var(--card);color:var(--accent-fg);font-weight:800;display:grid;place-items:center;padding:0}
+.cek{width:1.9rem;height:1.9rem;flex:none;border-radius:8px;border:2px solid var(--line);background:var(--card);color:var(--accent-fg);font-weight:800;display:grid;place-items:center;padding:0}
 .cek.on{background:var(--accent);border-color:var(--accent)}
 .kulak .nm.dicoret b{text-decoration:line-through;color:var(--muted)}
 nav button{position:relative}
 nav button .n{position:absolute;top:4px;left:calc(50% + 24px);min-width:18px;padding:0 5px;border-radius:99px;background:var(--danger);color:#fff;font-size:.7rem;line-height:18px}
 nav button{font-size:.85rem}
+#keranjang .row{flex-wrap:wrap;row-gap:4px}
+#keranjang .nm{flex:1 1 9rem}
+#keranjang .qty{margin-left:auto}
+#keranjang .row>.num:last-child{margin-left:auto;font-weight:700}
+.hkanan{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.ukuran{background:var(--soft);color:var(--fg);padding:6px 12px;font-weight:800;font-size:.85rem;border-radius:99px}
+.ukuran span{font-weight:600;color:var(--muted)}
+/* Tablet / layar lebar: barang kiri, nota kanan */
+@media (min-width:720px){
+  .wrap{max-width:1240px}
+  .tab:not(#tab-kasir){max-width:760px;width:100%;margin-inline:auto}
+  #tab-kasir:not([hidden]){display:grid!important;grid-template-columns:minmax(0,1fr) min(24rem,42%);grid-template-rows:auto auto 1fr;column-gap:16px;row-gap:12px;align-items:start}
+  #tab-kasir>#cari,#tab-kasir>#grupFilter,#tab-kasir>#gridBarang{grid-column:1}
+  #tab-kasir>.nota{grid-column:2;grid-row:1 / span 3;position:sticky;top:calc(12px + env(safe-area-inset-top,0px));max-height:calc(100vh - 100px);overflow-y:auto;border-top:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.06)}
+  #tab-kasir>.nota .total{font-size:1.9rem}
+}
 #printArea{display:none}
 .konfirm .btn2{background:var(--card);border:1px solid var(--line)}
 @media print{
@@ -128,7 +147,7 @@ nav button{font-size:.85rem}
 </head>
 <body>
 <div class="wrap">
-  <header><h1 id="judulToko">Toko Adrian</h1><span class="tgl" id="tgl"></span></header>
+  <header><h1 id="judulToko">Toko Adrian</h1><div class="hkanan"><span class="tgl" id="tgl"></span><button class="ukuran" id="ukuranBtn" aria-label="Ganti ukuran tulisan">Aa <span id="ukuranLbl">Normal</span></button></div></header>
   <div class="contoh" id="contohBar" hidden><span>Barang di bawah ini masih <b>contoh</b>. Ganti di tab Stok.</span><button id="hapusContoh">Kosongkan contoh</button></div>
 
   <!-- KASIR -->
@@ -295,7 +314,7 @@ function renderKasir(){
     if((cart[b.id]||0)>=b.stok){toast("Stok "+b.nama+" habis");return}
     cart[b.id]=(cart[b.id]||0)+1;renderKasir()});
   const k=$("keranjang");const ids=Object.keys(cart);
-  k.innerHTML=ids.length?ids.map(id=>{const b=S.barang.find(x=>x.id===id);return `<div class="row"><div class="nm"><b>${esc(b.nama)}</b><div class="muted num">${rp(b.harga)} × ${cart[id]}</div></div><div class="qty"><button class="qb" data-m="${id}" aria-label="Kurangi">−</button><span class="num">${cart[id]}</span><button class="qb" data-p="${id}" aria-label="Tambah">+</button></div><span class="num" style="min-width:76px;text-align:right">${rp(b.harga*cart[id])}</span></div>`}).join(""):`<p class="empty">Ketuk barang di atas untuk mulai.</p>`;
+  k.innerHTML=ids.length?ids.map(id=>{const b=S.barang.find(x=>x.id===id);return `<div class="row"><div class="nm"><b>${esc(b.nama)}</b><div class="muted num">${rp(b.harga)} × ${cart[id]}</div></div><div class="qty"><button class="qb" data-m="${id}" aria-label="Kurangi">−</button><span class="num">${cart[id]}</span><button class="qb" data-p="${id}" aria-label="Tambah">+</button></div><span class="num" style="min-width:5rem;text-align:right">${rp(b.harga*cart[id])}</span></div>`}).join(""):`<p class="empty">Ketuk barang di atas untuk mulai.</p>`;
   k.querySelectorAll("[data-m]").forEach(e=>e.onclick=()=>{const id=e.dataset.m;cart[id]--;if(cart[id]<=0)delete cart[id];renderKasir()});
   k.querySelectorAll("[data-p]").forEach(e=>e.onclick=()=>{const id=e.dataset.p,b=S.barang.find(x=>x.id===id);if(cart[id]>=b.stok){toast("Stok habis");return}cart[id]++;renderKasir()});
   const t=totalCart();$("total").textContent=rp(t);
@@ -514,7 +533,10 @@ $("salinKulak").onclick=()=>{const L=perluBeli().filter(b=>!S.kulak.cek[b.id]),C
   if(!L.length&&!C.length){toast("Daftar kosong");return}
   salinTeks("Kulakan "+S.toko.nama+" ("+new Date().toLocaleDateString("id-ID")+")\n"+L.map(b=>"- "+b.nama+" x"+saranQty(b)).join("\n")+(C.length?"\n"+C.map(c=>"- "+c.nama).join("\n"):""))};
 
-function render(){$("judulToko").textContent=S.toko.nama;document.title=S.toko.nama;renderReset();renderKulakan();renderKasir();renderStok();renderUtang();renderRekap()}
+const UKURAN=[["normal","Normal"],["besar","Besar"],["jumbo","Jumbo"]];
+function terapUkuran(){const u=UKURAN.find(x=>x[0]===S.ukuran)||UKURAN[0];document.documentElement.dataset.ukuran=u[0];$("ukuranLbl").textContent=u[1]}
+$("ukuranBtn").onclick=()=>{const i=UKURAN.findIndex(x=>x[0]===(S.ukuran||"normal"));S.ukuran=UKURAN[(i+1)%UKURAN.length][0];save();terapUkuran();toast("Ukuran tulisan: "+$("ukuranLbl").textContent)};
+function render(){terapUkuran();$("judulToko").textContent=S.toko.nama;document.title=S.toko.nama;renderReset();renderKulakan();renderKasir();renderStok();renderUtang();renderRekap()}
 render();
 </script>
 </body>
